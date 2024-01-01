@@ -1,0 +1,59 @@
+# Noise Schedule
+t: &t 1000
+num_inference_steps: 24
+schedule_type: cosine
+schedule_params: {}
+data_scale: 1.0
+cfg_config:
+  w: 0.5
+  null_token_prob: 0.5
+  null_token_val: 0
+
+# Training
+max_iters: 1_000_000
+log_every: 100
+batch_size: 256
+device: cuda
+amp: true
+
+# Dataset
+dataset_name: cifar10
+num_workers: 32
+
+# Model Architecture
+model_type: unet
+model_kwargs:
+  t: *t
+  in_channels: 3
+  in_height: 32
+  in_width: 32
+  channels: [128, 256, 512, 1024]
+  n_blocks_per_level: 2
+  n_levels:  4
+  attn_heads: 2
+  attn_blocks: 3
+  attn_latent_h: 16
+  dropout_p: 0.1
+  cond_config:
+    type: eltwise_add
+    num_classes: 11  # 10 classes plus null token
+
+# Optimizer Parameters
+learning_rate: 2.e-4
+weight_decay: 0.1
+
+# Training Vis
+train_vis_every: 5000
+inference_vis_every: 5000
+
+# Inference Viz
+inference_batch_size: 4
+inference_grid_shape: [5, 5]
+inference_vis_dir: ./vis/cifar_inference_vis
+
+# Loss
+pred_type: x0
+
+# Checkpoint Dumping
+save_checkpoint_every: 5000
+checkpoint_dir: ./ckpts/cifar_ckpts
