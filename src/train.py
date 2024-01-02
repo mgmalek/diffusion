@@ -6,6 +6,7 @@ from typing import Dict, List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.profiler import ProfilerActivity, profile
 from torch.utils.tensorboard import SummaryWriter
 
@@ -23,6 +24,7 @@ def train_step(
     config: Config,
     model: nn.Module,
     optimizer: torch.optim.Optimizer,
+    lr_scheduler: torch.optim.lr_scheduler.LRScheduler,
 ) -> TrainingSample:
     x0_unscaled, cond = next(iter_dl)
 
@@ -39,6 +41,7 @@ def train_step(
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+    lr_scheduler.step()
 
     sample.set_pred(pred.detach())
     sample.set_loss(loss.item())
@@ -72,6 +75,7 @@ def main(config_path: Path, config_overrides: List[str]):
     ddim = DDIM.from_config(config)
     model = load_model(config)
     optimizer = load_optimizer(model, config)
+    lr_scheduler = CosineAnnealingLR(optimizer, T_max=config.max_iters)
 
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Model has {num_params:,} parameters")
@@ -100,7 +104,9 @@ def main(config_path: Path, config_overrides: List[str]):
     # Initialize tensorboard logging
     writer = SummaryWriter(config.checkpoint_dir)
 
-    train_step_kwargs = dict(iter_dl=iter_dl, ddim=ddim, config=config, model=model, optimizer=optimizer)
+    train_step_kwargs = dict(
+        iter_dl=iter_dl, ddim=ddim, config=config, model=model, optimizer=optimizer, lr_scheduler=lr_scheduler
+    )
 
     # Profile the model
     if config.profile:
