@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import torch
 import torchvision.transforms.functional as TF
@@ -51,6 +53,8 @@ class CIFAR10Dataset(IterableDataset):
         img = torch.from_numpy(img)
         img = rearrange(img, "h w c -> c h w")
         img = (img / 255) * 2 - 1  # rescale from (0, 255) to (-1, 1)
+        if random.random() < 0.5:
+            img = TF.hflip(img)
         cls_idx = cls_idx + 1
         return img, cls_idx
 
